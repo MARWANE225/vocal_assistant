@@ -1,0 +1,308 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<!-- Toast Container -->
+<div aria-live="polite" aria-atomic="true" style="position: fixed; top: 0; right: 0; z-index: 1050;">
+  <div id="toast-container"></div>
+</div>
+
+<div class="container-fluid">
+  <!-- Minimal Top Navbar with Dark Mode Toggle -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
+    <a class="navbar-brand" href="#">IoT Dashboard</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#topNavbar" aria-controls="topNavbar" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="topNavbar">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <button id="darkModeToggle" class="btn btn-outline-secondary mr-2">Dark Mode</button>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#"><i class="fas fa-user"></i> Profile</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  <div class="row">
+    <!-- Main Content Column -->
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+      <!-- Sensor Data Card -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+          <h2>Sensor Data</h2>
+        </div>
+        <div class="card-body">
+          <div class="row text-center mb-3">
+            <div class="col-md-6">
+              <h4>Temperature</h4>
+              <p id="temperature" class="display-4">{{ "%.2f" | format(temperature) }}°C <i class="fas fa-thermometer-half"></i></p>
+            </div>
+            <div class="col-md-6">
+              <h4>Humidity</h4>
+              <p id="humidity" class="display-4">{{ "%.2f" | format(humidity) }}% <i class="fas fa-tint"></i></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sensor Data Visualization Card -->
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h3>Sensor Data Visualization</h3>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-6 mb-3 position-relative">
+              <div class="chart-container" style="position: relative; height:40vh; width:100%;">
+                <!-- Loading spinner for Temperature Chart -->
+                <div class="spinner-overlay" id="spinner-temp">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                  </div>
+                </div>
+                <canvas id="temperatureChart"></canvas>
+              </div>
+            </div>
+            <div class="col-lg-6 mb-3 position-relative">
+              <div class="chart-container" style="position: relative; height:40vh; width:100%;">
+                <!-- Loading spinner for Humidity Chart -->
+                <div class="spinner-overlay" id="spinner-hum">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                  </div>
+                </div>
+                <canvas id="humidityChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Sidebar on Right Column -->
+    <aside class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+      <div class="position-sticky pt-3">
+        <div class="card">
+          <div class="card-header">
+            <h4>Control Panel</h4>
+          </div>
+          <div class="card-body">
+            <ul class="nav flex-column nav-pills">
+              <li class="nav-item">
+                <a class="nav-link active" href="/"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/control_relay"><i class="fas fa-toggle-on"></i> Control Relay</a>
+                <li>
+                   <a href="/data-table" class="list-group-item list-group-item-action">Data Table</a>
+                </li>
+              </li>
+              <!-- Additional links can be added here -->
+            </ul>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.0.2"></script>
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+<script>
+  // Global toast notification function attached to window for console testing
+  function showToast(title, message) {
+      var toastContainer = document.getElementById('toast-container');
+      var toastHTML = `
+          <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+              <div class="toast-header">
+                  <i class="fas fa-exclamation-circle mr-2"></i>
+                  <strong class="mr-auto">${title}</strong>
+                  <small class="text-muted">just now</small>
+                  <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
+              </div>
+              <div class="toast-body">
+                  ${message}
+              </div>
+          </div>
+      `;
+      toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+      var newToast = toastContainer.lastElementChild;
+      $(newToast).toast('show');
+  }
+  window.showToast = showToast;
+
+  // Dark mode toggle functionality
+  document.getElementById('darkModeToggle').addEventListener('click', function() {
+      document.body.classList.toggle('dark-mode');
+      this.innerText = document.body.classList.contains('dark-mode') ? "Light Mode" : "Dark Mode";
+  });
+
+  // Socket.IO for real-time sensor updates
+  var socket = io();
+  socket.on('sensor_data', function(data) {
+      document.getElementById('temperature').innerText = data.temperature.toFixed(2) + '°C';
+      document.getElementById('humidity').innerText = data.humidity.toFixed(2) + '%';
+      
+      // Update charts with new data
+      temperatureChart.data.labels.push(new Date().toLocaleTimeString());
+      temperatureChart.data.datasets[0].data.push(data.temperature);
+      humidityChart.data.labels.push(new Date().toLocaleTimeString());
+      humidityChart.data.datasets[0].data.push(data.humidity);
+      temperatureChart.update();
+      humidityChart.update();
+
+      // Show toast if sensor data is critical
+      if (data.temperature < 15 || data.temperature > 30 || data.humidity < 30 || data.humidity > 70) {
+          showToast('Critical Sensor Data', `Temperature: ${data.temperature.toFixed(2)}°C, Humidity: ${data.humidity.toFixed(2)}%`);
+      }
+  });
+
+  // Historical data passed from Flask
+  var historicalData = {{ historical_data|tojson }};
+  var temperatureData = historicalData.map(data => data.temperature);
+  var humidityData = historicalData.map(data => data.humidity);
+  var timestamps = historicalData.map(data => new Date(data.timestamp).toLocaleString());
+  var labels = Array.from({length: historicalData.length}, (_, i) => i + 1);
+
+  var criticalTemperatureMin = 15;
+  var criticalTemperatureMax = 30;
+  var criticalHumidityMin = 30;
+  var criticalHumidityMax = 70;
+
+  function getTemperatureBackgroundColor(value) {
+      if (value < criticalTemperatureMin) {
+          return 'rgba(0, 0, 255, 0.2)';
+      } else if (value > criticalTemperatureMax) {
+          return 'rgba(255, 0, 0, 0.2)';
+      }
+      return 'rgba(75, 192, 192, 0.2)';
+  }
+
+  function getHumidityBackgroundColor(value) {
+      if (value < criticalHumidityMin || value > criticalHumidityMax) {
+          return 'rgba(0, 0, 255, 0.2)';
+      }
+      return 'rgba(75, 192, 192, 0.2)';
+  }
+
+  // Custom plugin for Chart.js to add background highlights
+  const backgroundPlugin = {
+      id: 'backgroundPlugin',
+      beforeDraw: (chart) => {
+          const ctx = chart.ctx;
+          const yScale = chart.scales.y;
+          const xScale = chart.scales.x;
+
+          temperatureData.forEach((value, index) => {
+              if (value > criticalTemperatureMax) {
+                  const x = xScale.getPixelForValue(index);
+                  const yMinRed = yScale.getPixelForValue(30);
+                  const yMaxRed = yScale.getPixelForValue(35);
+                  ctx.save();
+                  ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+                  ctx.fillRect(x - 5, yMaxRed, 10, yMinRed - yMaxRed);
+                  ctx.restore();
+              }
+          });
+
+          temperatureData.forEach((value, index) => {
+              if (value < criticalTemperatureMin) {
+                  const x = xScale.getPixelForValue(index);
+                  const yMinBlue = yScale.getPixelForValue(0);
+                  const yMaxBlue = yScale.getPixelForValue(5);
+                  ctx.save();
+                  ctx.fillStyle = 'rgba(0, 0, 255, 0.2)';
+                  ctx.fillRect(x - 5, yMaxBlue, 10, yMinBlue - yMaxBlue);
+                  ctx.restore();
+              }
+          });
+      }
+  };
+
+  // Initialize Temperature Chart
+  var temperatureCtx = document.getElementById('temperatureChart').getContext('2d');
+  var temperatureChart = new Chart(temperatureCtx, {
+      type: 'line',
+      data: {
+          labels: labels,
+          datasets: [{
+              label: 'Temperature (°C)',
+              data: temperatureData,
+              backgroundColor: temperatureData.map(getTemperatureBackgroundColor),
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 1,
+              fill: true
+          }]
+      },
+      options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+              x: { ticks: { display: false } },
+              y: { beginAtZero: true }
+          },
+          plugins: {
+              legend: { display: true },
+              tooltip: {
+                  callbacks: {
+                      label: function(context) {
+                          return context.dataset.label + ': ' + context.raw.toFixed(2) + '°C';
+                      },
+                      title: function(context) {
+                          return 'Timestamp: ' + timestamps[context[0].dataIndex];
+                      }
+                  }
+              }
+          }
+      },
+      plugins: [backgroundPlugin]
+  });
+  // Hide temperature chart spinner after chart initialization
+  document.getElementById('spinner-temp').classList.add('d-none');
+
+  // Initialize Humidity Chart
+  var humidityCtx = document.getElementById('humidityChart').getContext('2d');
+  var humidityChart = new Chart(humidityCtx, {
+      type: 'line',
+      data: {
+          labels: labels,
+          datasets: [{
+              label: 'Humidity (%)',
+              data: humidityData,
+              backgroundColor: humidityData.map(getHumidityBackgroundColor),
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 1,
+              fill: true
+          }]
+      },
+      options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+              x: { ticks: { display: false } },
+              y: { beginAtZero: true }
+          },
+          plugins: {
+              legend: { display: true },
+              tooltip: {
+                  callbacks: {
+                      label: function(context) {
+                          return context.dataset.label + ': ' + context.raw.toFixed(2) + '%';
+                      },
+                      title: function(context) {
+                          return 'Timestamp: ' + timestamps[context[0].dataIndex];
+                      }
+                  }
+              }
+          }
+      }
+  });
+  // Hide humidity chart spinner after chart initialization
+  document.getElementById('spinner-hum').classList.add('d-none');
+</script>
+{% endblock %}

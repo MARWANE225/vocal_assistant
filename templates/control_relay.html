@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container">
+  <h2>Control Relay (Light/Actuator)</h2>
+  <form action="/control" method="POST" class="d-inline">
+    <button type="submit" name="action" value="on" class="btn btn-success mx-2">
+      <i class="fas fa-toggle-on"></i> Turn ON Relay
+    </button>
+  </form>
+  <form action="/control" method="POST" class="d-inline">
+    <button type="submit" name="action" value="off" class="btn btn-danger mx-2">
+      <i class="fas fa-toggle-off"></i> Turn OFF Relay
+    </button>
+  </form>
+  {% if message %}
+    <div class="alert alert-info mt-3">{{ message }}</div>
+  {% endif %}
+</div>
+{% endblock %}
