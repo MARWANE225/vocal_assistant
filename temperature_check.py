@@ -4,8 +4,8 @@ from app import app, db
 from database import SensorData, CriticalData  # Ensure these models are correctly defined in database.py
 
 # Telegram bot configuration
-bot_token = '7642667540:AAGvb77u-RvTxxQeILLwDBHH0w9Ub5S69qI'
-chat_id = '1677969873'
+bot_token = ''
+chat_id = ''
 
 def check_temperature():
     with app.app_context():
