@@ -29,7 +29,7 @@
     <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
       <!-- Sensor Data Card -->
       <div class="card mb-4 shadow-sm">
-        <div class="card-header">
+        <div class="card-header" style="background-image:linear-gradient(45deg, #007bff, #00d4ff); color: white;">
           <h2>Sensor Data</h2>
         </div>
         <div class="card-body">
@@ -48,7 +48,7 @@
 
       <!-- Sensor Data Visualization Card -->
       <div class="card shadow-sm">
-        <div class="card-header">
+        <div class="card-header" style="background-image:linear-gradient(45deg, #007bff, #00d4ff); color: white;">
           <h3>Sensor Data Visualization</h3>
         </div>
         <div class="card-body">
@@ -81,29 +81,32 @@
     </main>
 
     <!-- Sidebar on Right Column -->
-    <aside class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-      <div class="position-sticky pt-3">
-        <div class="card">
-          <div class="card-header">
-            <h4>Control Panel</h4>
-          </div>
-          <div class="card-body">
-            <ul class="nav flex-column nav-pills">
-              <li class="nav-item">
-                <a class="nav-link active" href="/"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="/control_relay"><i class="fas fa-toggle-on"></i> Control Relay</a>
-                <li>
-                   <a href="/data-table" class="list-group-item list-group-item-action">Data Table</a>
-                </li>
-              </li>
-              <!-- Additional links can be added here -->
-            </ul>
-          </div>
-        </div>
+<aside class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+  <div class="position-sticky pt-3">
+    <div class="card">
+      <div class="card-header" style="background-image:linear-gradient(45deg, #007bff, #00d4ff); color: white;">
+        <h4>Control Panel</h4>
       </div>
-    </aside>
+      <div class="card-body">
+        <ul class="nav flex-column nav-pills">
+          <li class="nav-item">
+            <a class="nav-link active" href="/"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/control_relay"><i class="fas fa-toggle-on"></i> Control Relay</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/data-table"><i class="fas fa-table"></i> Data Table</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/vocal-commands-interface"><i class="fas fa-microphone"></i> Vocal Commands</a>
+          </li>
+          <!-- Additional links can be added here -->
+        </ul>
+      </div>
+    </div>
+  </div>
+</aside>
   </div>
 </div>
 
@@ -114,31 +117,51 @@
 <script>
   // Global toast notification function attached to window for console testing
   function showToast(title, message) {
-      var toastContainer = document.getElementById('toast-container');
-      var toastHTML = `
-          <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
-              <div class="toast-header">
-                  <i class="fas fa-exclamation-circle mr-2"></i>
-                  <strong class="mr-auto">${title}</strong>
-                  <small class="text-muted">just now</small>
-                  <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                  </button>
-              </div>
-              <div class="toast-body">
-                  ${message}
-              </div>
-          </div>
-      `;
-      toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-      var newToast = toastContainer.lastElementChild;
-      $(newToast).toast('show');
-  }
-  window.showToast = showToast;
+    var toastContainer = document.getElementById('toast-container');
+
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+
+    toast.innerHTML = `
+        <div class="toast-header">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            <strong class="mr-auto">${title}</strong>
+            <small class="text-muted">just now</small>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // Show the toast with a delay
+    $(toast).toast({ delay: 5000 });
+    $(toast).toast('show');
+
+    // Remove the toast from the DOM when it's hidden
+    $(toast).on('hidden.bs.toast', function () {
+        toast.remove();
+    });
+}
+
+window.showToast = showToast;
 
   // Dark mode toggle functionality
   document.getElementById('darkModeToggle').addEventListener('click', function() {
       document.body.classList.toggle('dark-mode');
+      document.querySelector('header').classList.toggle('dark-mode');
+      document.querySelector('footer').classList.toggle('dark-mode');
+      document.querySelectorAll('button').forEach(button => button.classList.toggle('dark-mode'));
+      document.querySelectorAll('.chart-box').forEach(box => box.classList.toggle('dark-mode'));
+      document.querySelector('.sidebar').classList.toggle('dark-mode');
+      document.querySelector('.main-content').classList.toggle('dark-mode');
       this.innerText = document.body.classList.contains('dark-mode') ? "Light Mode" : "Dark Mode";
   });
 
@@ -163,11 +186,18 @@
   });
 
   // Historical data passed from Flask
-  var historicalData = {{ historical_data|tojson }};
-  var temperatureData = historicalData.map(data => data.temperature);
-  var humidityData = historicalData.map(data => data.humidity);
-  var timestamps = historicalData.map(data => new Date(data.timestamp).toLocaleString());
-  var labels = Array.from({length: historicalData.length}, (_, i) => i + 1);
+// Historical data passed from Flask
+var historicalData = {{ historical_data|tojson }};
+var temperatureData = historicalData.map(data => data.temperature);
+var humidityData = historicalData.map(data => data.humidity);
+var timestamps = historicalData.map(data => new Date(data.timestamp).toLocaleString());
+var labels = Array.from({length: historicalData.length}, (_, i) => i + 1);
+
+// Only keep the last 20 values for visualization
+temperatureData = temperatureData.slice(-20);
+humidityData = humidityData.slice(-20);
+timestamps = timestamps.slice(-20);
+labels = labels.slice(-20);
 
   var criticalTemperatureMin = 15;
   var criticalTemperatureMax = 30;
@@ -225,84 +255,86 @@
   };
 
   // Initialize Temperature Chart
-  var temperatureCtx = document.getElementById('temperatureChart').getContext('2d');
-  var temperatureChart = new Chart(temperatureCtx, {
-      type: 'line',
-      data: {
-          labels: labels,
-          datasets: [{
-              label: 'Temperature (°C)',
-              data: temperatureData,
-              backgroundColor: temperatureData.map(getTemperatureBackgroundColor),
-              borderColor: 'rgba(75, 192, 192, 1)',
-              borderWidth: 1,
-              fill: true
-          }]
-      },
-      options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-              x: { ticks: { display: false } },
-              y: { beginAtZero: true }
-          },
-          plugins: {
-              legend: { display: true },
-              tooltip: {
-                  callbacks: {
-                      label: function(context) {
-                          return context.dataset.label + ': ' + context.raw.toFixed(2) + '°C';
-                      },
-                      title: function(context) {
-                          return 'Timestamp: ' + timestamps[context[0].dataIndex];
-                      }
-                  }
-              }
-          }
-      },
-      plugins: [backgroundPlugin]
-  });
-  // Hide temperature chart spinner after chart initialization
-  document.getElementById('spinner-temp').classList.add('d-none');
+var temperatureCtx = document.getElementById('temperatureChart').getContext('2d');
+var temperatureChart = new Chart(temperatureCtx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Temperature (°C)',
+            data: temperatureData,
+            backgroundColor: temperatureData.map(getTemperatureBackgroundColor),
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: { ticks: { display: false } },
+            y: { beginAtZero: true }
+        },
+        plugins: {
+            legend: { display: true },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': ' + context.raw.toFixed(2) + '°C';
+                    },
+                    title: function(context) {
+                        return 'Timestamp: ' + timestamps[context[0].dataIndex];
+                    }
+                }
+            }
+        }
+    },
+    plugins: [backgroundPlugin]
+});
+// Hide temperature chart spinner after chart initialization
+document.getElementById('spinner-temp').classList.add('d-none');
 
-  // Initialize Humidity Chart
-  var humidityCtx = document.getElementById('humidityChart').getContext('2d');
-  var humidityChart = new Chart(humidityCtx, {
-      type: 'line',
-      data: {
-          labels: labels,
-          datasets: [{
-              label: 'Humidity (%)',
-              data: humidityData,
-              backgroundColor: humidityData.map(getHumidityBackgroundColor),
-              borderColor: 'rgba(75, 192, 192, 1)',
-              borderWidth: 1,
-              fill: true
-          }]
-      },
-      options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-              x: { ticks: { display: false } },
-              y: { beginAtZero: true }
-          },
-          plugins: {
-              legend: { display: true },
-              tooltip: {
-                  callbacks: {
-                      label: function(context) {
-                          return context.dataset.label + ': ' + context.raw.toFixed(2) + '%';
-                      },
-                      title: function(context) {
-                          return 'Timestamp: ' + timestamps[context[0].dataIndex];
-                      }
-                  }
-              }
-          }
-      }
-  });
-  // Hide humidity chart spinner after chart initialization
-  document.getElementById('spinner-hum').classList.add('d-none');
+// Initialize Humidity Chart
+var humidityCtx = document.getElementById('humidityChart').getContext('2d');
+var humidityChart = new Chart(humidityCtx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Humidity (%)',
+            data: humidityData,
+            backgroundColor: humidityData.map(getHumidityBackgroundColor),
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: { ticks: { display: false } },
+            y: { beginAtZero: true }
+        },
+        plugins: {
+            legend: { display: true },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': ' + context.raw.toFixed(2) + '%';
+                    },
+                    title: function(context) {
+                        return 'Timestamp: ' + timestamps[context[0].dataIndex];
+                    }
+                }
+            }
+        }
+    }
+});
+// Hide humidity chart spinner after chart initialization
+document.getElementById('spinner-hum').classList.add('d-none');
+
+// ...existing code...
 </script>
 {% endblock %}

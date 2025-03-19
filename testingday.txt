@@ -1,0 +1,374 @@
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include <DHT.h>
+
+#define DHTPIN 2     // DHT11 sensor connected to GPIO2
+#define DHTTYPE DHT11
+
+const char* ssid = "your_SSID";
+const char* password = "your_PASSWORD";
+const char* mqtt_server = "test.mosquitto.org";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(115200);
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+  dht.begin();
+}
+
+void setup_wifi() {
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void reconnect() {
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    if (client.connect("ESP8266Client")) {
+      Serial.println("connected");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      delay(5000);
+    }
+  }
+}
+
+void loop() {
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+
+  String payload = "Temperature: " + String(t) + "°C, Humidity: " + String(h) + "%";
+  Serial.print("Publishing message: ");
+  Serial.println(payload);
+  client.publish("home/dht11", payload.c_str());
+
+  delay(60000); // Publish every 60 seconds
+}
+===========================================================================================================
+from flask import Flask, render_template, request, jsonify, Response
+import paho.mqtt.client as mqtt
+from flask_socketio import SocketIO, emit
+from database import db, init_app, save_sensor_data, get_historical_data, SensorData, CriticalData
+from flask_migrate import Migrate
+from apscheduler.schedulers.background import BackgroundScheduler
+import csv
+
+# Setup Flask
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sensor_data.db?timeout=60'  # Increased timeout to 60 seconds
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize database
+init_app(app)
+migrate = Migrate(app, db)
+
+# Initialize Flask-SocketIO
+socketio = SocketIO(app)
+
+# MQTT configuration
+MQTT_BROKER = "test.mosquitto.org"  # Public MQTT broker for testing
+MQTT_PORT = 1883
+MQTT_TOPIC = "home/dht11"
+
+# Initialize MQTT client
+mqtt_client = mqtt.Client()
+
+def on_connect(client, userdata, flags, rc):
+    print("Connected to MQTT broker with result code " + str(rc))
+    client.subscribe(MQTT_TOPIC)
+
+def on_message(client, userdata, msg):
+    print(f"Received message: {msg.topic} {msg.payload}")
+    # Parse the payload and save the data to the database
+    payload = msg.payload.decode('utf-8')
+    temperature, humidity = parse_sensor_data(payload)
+    save_sensor_data(temperature, humidity)
+    socketio.emit('sensor_data', {'temperature': temperature, 'humidity': humidity})
+
+def parse_sensor_data(payload):
+    # Example payload: "Temperature: 25.0°C, Humidity: 60.0%"
+    parts = payload.split(',')
+    temperature = float(parts[0].split(':')[1].strip().replace('°C', ''))
+    humidity = float(parts[1].split(':')[1].strip().replace('%', ''))
+    return temperature, humidity
+
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+mqtt_client.loop_start()
+
+@app.route('/')
+def dashboard():
+    # Read historical data from database
+    historical_data = get_historical_data()
+
+    # Retrieve the latest sensor data
+    latest_data = SensorData.query.order_by(SensorData.timestamp.desc()).first()
+    if latest_data:
+        temperature = latest_data.temperature
+        humidity = latest_data.humidity
+    else:
+        # Initialize temperature and humidity with default values if no data is available
+        temperature = 0.0
+        humidity = 0.0
+
+    return render_template('dashboard.html', temperature=temperature, humidity=humidity, historical_data=historical_data)
+
+@app.route('/control_relay')
+def control_relay():
+    return render_template('control_relay.html')
+
+@app.route('/control', methods=['POST'])
+def control():
+    device = request.form['device']
+    action = request.form['action']
+    topic = f"home/{device}"
+    mqtt_client.publish(topic, action)
+    return "OK", 200
+
+@app.route('/latest-sensor-data')
+def latest_sensor_data():
+    # Fetch the latest sensor data from the database
+    latest_data = SensorData.query.order_by(SensorData.timestamp.desc()).first()
+    return jsonify(latest_data.to_dict())
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return app.send_static_file(filename)
+
+@app.route('/data-table')
+def data_table():
+    # Fetch all sensor data from the database
+    sensor_data = SensorData.query.order_by(SensorData.timestamp.desc()).all()
+    # Fetch the critical temperature value
+    critical_data = CriticalData.query.first()
+    critical_value = critical_data.temperature if critical_data else float('inf')  # Set a default value if critical_data is None
+    print(f"Critical Value: {critical_value}")
+    for data in sensor_data:
+        print(f"Timestamp: {data.timestamp}, Temperature: {data.temperature}, Critical: {data.temperature > critical_value}")
+    return render_template('data_table.html', sensor_data=sensor_data, critical_value=critical_value)
+
+@app.route('/download-csv')
+def download_csv():
+    # Fetch all sensor data from the database
+    sensor_data = SensorData.query.order_by(SensorData.timestamp.desc()).all()
+
+    # Create a CSV file in memory
+    def generate():
+        data = csv.writer()
+        data.writerow(['Timestamp', 'Temperature (°C)', 'Humidity (%)'])
+        for data in sensor_data:
+            data.writerow([data.timestamp, data.temperature, data.humidity])
+        yield data.getvalue()
+
+    # Return the CSV file as a response
+    return Response(generate(), mimetype='text/csv', headers={'Content-Disposition': 'attachment;filename=sensor_data.csv'})
+
+@app.route('/update-critical-value', methods=['POST'])
+def update_critical_value():
+    new_value = request.form.get('critical_value')
+    if new_value is not None:
+        try:
+            new_value = float(new_value)
+            with app.app_context():
+                critical_data = CriticalData.query.first()
+                if critical_data is None:
+                    critical_data = CriticalData(temperature=new_value)
+                    db.session.add(critical_data)
+                else:
+                    critical_data.temperature = new_value
+                db.session.commit()
+                # Clear previous warning messages and return only the new one
+                return jsonify({"message": f"Critical temperature value updated to: {new_value}"}), 200
+        except ValueError:
+            return jsonify({"error": "Invalid temperature value"}), 400
+    return jsonify({"error": "No temperature value provided"}), 400
+
+@app.route('/vocal-commands-interface')
+def vocal_commands_interface():
+    return render_template('vocal_commands.html')
+
+if __name__ == '__main__':
+    try:
+        socketio.run(app, debug=True, use_reloader=False)
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()
+        ===============================================================================================*
+        from flask import Flask, render_template, request, jsonify, Response
+import paho.mqtt.client as mqtt
+from flask_socketio import SocketIO, emit
+from database import db, init_app, save_sensor_data, get_historical_data, SensorData, CriticalData
+from flask_migrate import Migrate
+from apscheduler.schedulers.background import BackgroundScheduler
+import csv
+
+# Setup Flask
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sensor_data.db?timeout=60'  # Increased timeout to 60 seconds
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize database
+init_app(app)
+migrate = Migrate(app, db)
+
+# Initialize Flask-SocketIO
+socketio = SocketIO(app)
+
+# MQTT configuration
+MQTT_BROKER = "test.mosquitto.org"  # Public MQTT broker for testing
+MQTT_PORT = 1883
+MQTT_TOPIC = "home/dht11"
+
+# Initialize MQTT client
+mqtt_client = mqtt.Client()
+
+def on_connect(client, userdata, flags, rc):
+    print("Connected to MQTT broker with result code " + str(rc))
+    client.subscribe(MQTT_TOPIC)
+
+def on_message(client, userdata, msg):
+    print(f"Received message: {msg.topic} {msg.payload}")
+    # Parse the payload and save the data to the database
+    payload = msg.payload.decode('utf-8')
+    temperature, humidity = parse_sensor_data(payload)
+    save_sensor_data(temperature, humidity)
+    socketio.emit('sensor_data', {'temperature': temperature, 'humidity': humidity})
+
+def parse_sensor_data(payload):
+    # Example payload: "Temperature: 25.0°C, Humidity: 60.0%"
+    parts = payload.split(',')
+    temperature = float(parts[0].split(':')[1].strip().replace('°C', ''))
+    humidity = float(parts[1].split(':')[1].strip().replace('%', ''))
+    return temperature, humidity
+
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+mqtt_client.loop_start()
+
+@app.route('/')
+def dashboard():
+    # Read historical data from database
+    historical_data = get_historical_data()
+
+    # Retrieve the latest sensor data
+    latest_data = SensorData.query.order_by(SensorData.timestamp.desc()).first()
+    if latest_data:
+        temperature = latest_data.temperature
+        humidity = latest_data.humidity
+    else:
+        # Initialize temperature and humidity with default values if no data is available
+        temperature = 0.0
+        humidity = 0.0
+
+    return render_template('dashboard.html', temperature=temperature, humidity=humidity, historical_data=historical_data)
+
+@app.route('/control_relay')
+def control_relay():
+    return render_template('control_relay.html')
+
+@app.route('/control', methods=['POST'])
+def control():
+    device = request.form['device']
+    action = request.form['action']
+    topic = f"home/{device}"
+    mqtt_client.publish(topic, action)
+    return "OK", 200
+
+@app.route('/latest-sensor-data')
+def latest_sensor_data():
+    # Fetch the latest sensor data from the database
+    latest_data = SensorData.query.order_by(SensorData.timestamp.desc()).first()
+    return jsonify(latest_data.to_dict())
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return app.send_static_file(filename)
+
+@app.route('/data-table')
+def data_table():
+    # Fetch all sensor data from the database
+    sensor_data = SensorData.query.order_by(SensorData.timestamp.desc()).all()
+    # Fetch the critical temperature value
+    critical_data = CriticalData.query.first()
+    critical_value = critical_data.temperature if critical_data else float('inf')  # Set a default value if critical_data is None
+    print(f"Critical Value: {critical_value}")
+    for data in sensor_data:
+        print(f"Timestamp: {data.timestamp}, Temperature: {data.temperature}, Critical: {data.temperature > critical_value}")
+    return render_template('data_table.html', sensor_data=sensor_data, critical_value=critical_value)
+
+@app.route('/download-csv')
+def download_csv():
+    # Fetch all sensor data from the database
+    sensor_data = SensorData.query.order_by(SensorData.timestamp.desc()).all()
+
+    # Create a CSV file in memory
+    def generate():
+        data = csv.writer()
+        data.writerow(['Timestamp', 'Temperature (°C)', 'Humidity (%)'])
+        for data in sensor_data:
+            data.writerow([data.timestamp, data.temperature, data.humidity])
+        yield data.getvalue()
+
+    # Return the CSV file as a response
+    return Response(generate(), mimetype='text/csv', headers={'Content-Disposition': 'attachment;filename=sensor_data.csv'})
+
+@app.route('/update-critical-value', methods=['POST'])
+def update_critical_value():
+    new_value = request.form.get('critical_value')
+    if new_value is not None:
+        try:
+            new_value = float(new_value)
+            with app.app_context():
+                critical_data = CriticalData.query.first()
+                if critical_data is None:
+                    critical_data = CriticalData(temperature=new_value)
+                    db.session.add(critical_data)
+                else:
+                    critical_data.temperature = new_value
+                db.session.commit()
+                # Clear previous warning messages and return only the new one
+                return jsonify({"message": f"Critical temperature value updated to: {new_value}"}), 200
+        except ValueError:
+            return jsonify({"error": "Invalid temperature value"}), 400
+    return jsonify({"error": "No temperature value provided"}), 400
+
+@app.route('/vocal-commands-interface')
+def vocal_commands_interface():
+    return render_template('vocal_commands.html')
+
+if __name__ == '__main__':
+    try:
+        socketio.run(app, debug=True, use_reloader=False)
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()

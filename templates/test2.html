@@ -111,19 +111,25 @@
     <div class="flash-message" id="flashMessage">Action completed</div>
 
     <script>
-        function sendControlRequest(device, action) {
+        function sendControlRequest(action, angle = null) {
+            let data = { action: action };
+            if (angle !== null) {
+                data.angle = angle;
+            }
+
             fetch('/control', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `device=${device}&action=${action}`
-            }).then(response => {
-                if (response.ok) {
-                    showFlashMessage(`Successfully sent ${action} command to ${device}`);
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(response => response.json())
+              .then(data => {
+                if (data.status === "success") {
+                    showFlashMessage(`Successfully sent ${action} command`);
                 } else {
-                    showFlashMessage(`Failed to send ${action} command to ${device}`, true);
+                    showFlashMessage(`Failed to send ${action} command`, true);
                 }
+            }).catch(() => {
+                showFlashMessage("Error sending request", true);
             });
         }
 
@@ -132,35 +138,27 @@
             flashMessage.textContent = message;
             flashMessage.style.backgroundColor = isError ? '#dc3545' : '#28a745';
             flashMessage.style.display = 'block';
-            setTimeout(() => {
-                flashMessage.style.display = 'none';
-            }, 3000);
+            setTimeout(() => { flashMessage.style.display = 'none'; }, 3000);
         }
 
         document.getElementById('ledSlider').addEventListener('input', function() {
-            const brightness = this.value;
-            console.log(`LED brightness set to ${brightness}`);
-            sendControlRequest('led/brightness', brightness);
+            sendControlRequest('led_on');
         });
 
         document.getElementById('fanOnButton').addEventListener('click', function() {
-            console.log('Fan turned on');
-            sendControlRequest('fan', 'on');
+            sendControlRequest('fan_on');
         });
 
         document.getElementById('fanOffButton').addEventListener('click', function() {
-            console.log('Fan turned off');
-            sendControlRequest('fan', 'off');
+            sendControlRequest('fan_off');
         });
 
         document.getElementById('doorOpenButton').addEventListener('click', function() {
-            console.log('Door opened');
-            sendControlRequest('door', 'open');
+            sendControlRequest('servo', 90);
         });
 
         document.getElementById('doorCloseButton').addEventListener('click', function() {
-            console.log('Door closed');
-            sendControlRequest('door', 'close');
+            sendControlRequest('servo', 0);
         });
     </script>
 </body>

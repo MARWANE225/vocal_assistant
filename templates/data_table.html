@@ -7,8 +7,11 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css">
     <style>
-        .critical {
-            background-color: #ffcccc; /* Light red background for critical rows */
+        .critical-temperature {
+            background-color: #ffcccc; /* Light red background for critical temperature */
+        }
+        .critical-humidity {
+            background-color: #cce5ff; /* Light blue background for critical humidity */
         }
     </style>
 </head>
@@ -33,6 +36,7 @@
 
     <div class="container mt-5">
         <h1>Sensor Data Table</h1>
+        <a href="/download-csv" class="btn btn-primary mb-3" style="background-image:linear-gradient(45deg, #007bff, #00d4ff); color: white;">Download CSV</a>
         <table id="sensorTable" class="table table-striped table-bordered">
             <thead>
                 <tr>
@@ -43,10 +47,10 @@
             </thead>
             <tbody>
                 {% for data in sensor_data %}
-                <tr class="{% if data.temperature > critical_value %}critical{% endif %}">
+                <tr>
                     <td>{{ data.timestamp }}</td>
-                    <td>{{ data.temperature }}</td>
-                    <td>{{ data.humidity }}</td>
+                    <td class="{% if data.temperature > 30 %}critical-temperature{% endif %}">{{ data.temperature }}</td>
+                    <td class="{% if data.humidity > 60 %}critical-humidity{% endif %}">{{ data.humidity }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -63,7 +67,11 @@
                 "paging": true,
                 "searching": true,
                 "ordering": true,
-                "order": [[0, "desc"]]  // Order by timestamp descending
+                "order": [[0, "desc"]],  // Order by timestamp descending
+                "columnDefs": [
+                    { "searchable": true, "targets": 0 },  // Enable search on the timestamp column
+                    { "searchable": false, "targets": [1, 2] }  // Disable search on the temperature and humidity columns
+                ]
             });
         });
     </script>

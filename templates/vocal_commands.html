@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Assistant</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0f0f0f;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        .overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 123, 255, 0.5);
+            box-shadow: inset 0 0 50px rgba(0, 123, 255, 0.5);
+        }
+        .container {
+            position: relative;
+            text-align: center;
+            z-index: 10;
+        }
+        textarea {
+            width: 100%; 
+            height: 150px;
+            background: rgba(0, 123, 255, 0.1);
+            color: cyan;
+            border: none;
+            outline: none;
+            padding: 10px;
+            font-size: 18px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            resize: none; 
+            margin-bottom: 20px;
+        }
+        .button {
+            margin-top: 5px;
+            padding: 15px 30px;
+            background: #007bff;
+            border: none;
+            color: black;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 50px;
+            box-shadow: 0 0 10px #007bff;
+            transition: transform 0.2s ease-in-out;
+        }
+        .button:hover {
+            box-shadow: 0 0 20px #007bff;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        #particles-js {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .logo {
+            position: absolute;
+            top: -150px;  
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+</head>
+<body>
+    <div id="particles-js"></div>
+    <div class="overlay"></div>
+    
+    <div class="container">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+        <textarea id="output" placeholder="User Input..."></textarea>
+        <textarea id="modelResponse" placeholder="Assistant's Response..." readonly></textarea>
+        <button class="button" id="startButton">Start Listening</button>
+        <button class="button" id="sendCommand">Send Command</button>
+    </div>
+
+    <script>
+        particlesJS('particles-js', {
+            "particles": {
+                "number": {
+                    "value": 100,
+                    "density": {
+                        "enable": true,
+                        "value_area": 800
+                    }
+                },
+                "color": {
+                    "value": "#007bff"
+                },
+                "shape": {
+                    "type": "circle",
+                    "stroke": {
+                        "width": 0,
+                        "color": "#000000"
+                    }
+                },
+                "opacity": {
+                    "value": 0.5,
+                    "random": true,
+                    "anim": {
+                        "enable": true,
+                        "speed": 1,
+                        "opacity_min": 0.1
+                    }
+                },
+                "size": {
+                    "value": 3,
+                    "random": true,
+                    "anim": {
+                        "enable": false
+                    }
+                },
+                "line_linked": {
+                    "enable": true,
+                    "distance": 150,
+                    "color": "#007bff",
+                    "opacity": 0.4,
+                    "width": 1
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 6,
+                    "direction": "none",
+                    "random": true,
+                    "straight": false,
+                    "out_mode": "out",
+                    "bounce": false,
+                    "attract": {
+                        "enable": false
+                    }
+                }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": {
+                    "onhover": {
+                        "enable": true,
+                        "mode": "repulse"
+                    },
+                    "onclick": {
+                        "enable": true,
+                        "mode": "push"
+                    }
+                }
+            }
+        });
+
+        const button = document.getElementById("startButton");
+        const sendButton = document.getElementById("sendCommand");
+        const output = document.getElementById("output");
+        const modelResponse = document.getElementById("modelResponse");
+
+        if ('webkitSpeechRecognition' in window) {
+            const recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onresult = function(event) {
+                let transcript = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript + ' ';
+                }
+                output.value = transcript.trim();
+            };
+
+            button.addEventListener("click", () => {
+                recognition.start();
+                button.textContent = "Listening...";
+            });
+        } else {
+            alert("Speech recognition not supported in your browser.");
+        }
+
+        sendButton.addEventListener("click", () => {
+            const command = output.value;
+            fetch('/process_command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: command })
+            })
+            .then(response => response.json())
+            .then(data => {
+                modelResponse.value = data.response;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                modelResponse.value = "An error occurred.";
+            });
+        });
+    </script>
+</body>
+</html>

@@ -2,13 +2,13 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f0f0f0;
+    background-color: #e9f7ff;
     display: flex;
 }
 
 header {
-    background-color: #4CAF50;
-    color: white;
+    background-color:linear-gradient(45deg, #007bff, #00d4ff);
+    color: #ffffff;
     padding: 15px;
     text-align: center;
 }
@@ -29,8 +29,8 @@ main {
 
 footer {
     text-align: center;
-    background-color: #4CAF50;
-    color: white;
+    background-color: #007bff;
+    color: #ffffff;
     padding: 10px;
     position: fixed;
     width: 100%;
@@ -38,8 +38,8 @@ footer {
 }
 
 button {
-    background-color: #4CAF50;
-    color: white;
+    background-color: #007bff;
+    color: #ffffff;
     padding: 10px 15px;
     border: none;
     cursor: pointer;
@@ -47,7 +47,7 @@ button {
 }
 
 button:hover {
-    background-color: #45a049;
+    background-color: #0056b3;
 }
 
 .chart-container {
@@ -57,9 +57,9 @@ button:hover {
 }
 
 .chart-box {
-    background-color: white;
+    background-color: #e9f7ff;
     padding: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid #e9f7ff;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
@@ -84,8 +84,8 @@ canvas {
 }
 
 .sidebar {
-    background-color: #4CAF50;
-    color: white;
+    background-color: #007bff;
+    color: #ffffff;
     padding: 20px;
     width: 150px; /* Adjusted width */
     height: 100vh;
@@ -116,10 +116,17 @@ canvas {
 }
 
 .sidebar nav ul li a {
-    color: white;
-    text-decoration: underline;
+    color: #ffffff;
+    text-decoration: none;
     display: block;
     padding: 10px;
+    background-color: #007bff;
+    border: 1px solid #ffffff;
+    border-radius: 5px;
+}
+
+.sidebar nav ul li a:hover {
+    background-color: #0056b3;
 }
 
 .main-content {
@@ -139,4 +146,51 @@ canvas {
     align-items: center;
     justify-content: center;
     z-index: 10;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+    background-color: #121212;
+    color: #ffffff;
+}
+
+header.dark-mode {
+    background-color: #333;
+}
+
+footer.dark-mode {
+    background-color: #333;
+}
+
+button.dark-mode {
+    background-color: #333;
+    color: #ffffff;
+}
+
+button.dark-mode:hover {
+    background-color: #444;
+}
+
+.chart-box.dark-mode {
+    background-color: #1e1e1e;
+    border-color: #444;
+    color: #ffffff;
+}
+
+.sidebar.dark-mode {
+    background-color: #333;
+    color: #ffffff;
+}
+
+.sidebar.dark-mode nav ul li a {
+    color: #ffffff;
+}
+
+.sidebar.dark-mode nav ul li a:hover {
+    background-color: #444;
+}
+
+.main-content.dark-mode {
+    background-color: #121212;
+    color: #ffffff;
 }
