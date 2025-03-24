@@ -7,72 +7,76 @@
 </div>
 
 <div class="container-fluid">
-  <!-- Minimal Top Navbar with Dark Mode Toggle -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
-    <a class="navbar-brand" href="#">IoT Dashboard</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#topNavbar" aria-controls="topNavbar" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="topNavbar">
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item">
-          <button id="darkModeToggle" class="btn btn-outline-secondary mr-2">Dark Mode</button>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#"><i class="fas fa-user"></i> Profile</a>
-        </li>
-      </ul>
-    </div>
-  </nav>
+  <!-- Top Navbar -->
+<!-- Top Header Centered -->
+<div class="text-center my-4">
+  <h1 class="display-4 font-weight-bold">
+    <i class="fas fa-microchip text-primary"></i> IoT Dashboard
+  </h1>
+  <div class="mt-3">
+    <button id="darkModeToggle" class="btn btn-outline-secondary mr-2">Dark Mode</button>
+    <a class="btn btn-outline-primary" href="#"><i class="fas fa-user-circle"></i> Profile</a>
+  </div>
+</div>
+
+
   <div class="row">
-    <!-- Main Content Column -->
-    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-      <!-- Sensor Data Card -->
-      <div class="card mb-4 shadow-sm">
-        <div class="card-header" style="background-image:linear-gradient(45deg, #007bff, #00d4ff); color: white;">
-          <h2>Sensor Data</h2>
+    <!-- Main Content -->
+    <main class="col-md-9 col-lg-10">
+      <!-- Sensor Data Cards -->
+      <div class="row mb-4 text-center">
+        <div class="col-md-4">
+          <div class="card shadow-sm p-3">
+            <h5>Temperature</h5>
+            <h3 class="text-danger">{{ "%.2f"|format(temperature) }} °C <i class="fas fa-thermometer-half"></i></h3>
+          </div>
         </div>
-        <div class="card-body">
-          <div class="row text-center mb-3">
-            <div class="col-md-6">
-              <h4>Temperature</h4>
-              <p id="temperature" class="display-4">{{ "%.2f" | format(temperature) }}°C <i class="fas fa-thermometer-half"></i></p>
-            </div>
-            <div class="col-md-6">
-              <h4>Humidity</h4>
-              <p id="humidity" class="display-4">{{ "%.2f" | format(humidity) }}% <i class="fas fa-tint"></i></p>
-            </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm p-3">
+            <h5>Humidity</h5>
+            <h3 class="text-info">{{ "%.2f"|format(humidity) }} % <i class="fas fa-tint"></i></h3>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm p-3">
+            <h5>CO₂</h5>
+            <h3 class="text-secondary">{{ "%.2f"|format(co2) if co2 is not none else "N/A" }} ppm <i class="fas fa-cloud"></i></h3>
           </div>
         </div>
       </div>
 
-      <!-- Sensor Data Visualization Card -->
-      <div class="card shadow-sm">
-        <div class="card-header" style="background-image:linear-gradient(45deg, #007bff, #00d4ff); color: white;">
-          <h3>Sensor Data Visualization</h3>
+      <!-- Sensor Data Charts -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">Sensor Data Visualization</h4>
         </div>
         <div class="card-body">
           <div class="row">
-            <div class="col-lg-6 mb-3 position-relative">
-              <div class="chart-container" style="position: relative; height:40vh; width:100%;">
-                <!-- Loading spinner for Temperature Chart -->
+            <div class="col-md-4 mb-3">
+              <h6 class="text-center">Temperature over Time (°C)</h6>
+              <div class="position-relative chart-container" style="height: 30vh;">
                 <div class="spinner-overlay" id="spinner-temp">
-                  <div class="spinner-border text-primary" role="status">
-                    <span class="sr-only">Loading...</span>
-                  </div>
+                  <div class="spinner-border text-primary" role="status"></div>
                 </div>
                 <canvas id="temperatureChart"></canvas>
               </div>
             </div>
-            <div class="col-lg-6 mb-3 position-relative">
-              <div class="chart-container" style="position: relative; height:40vh; width:100%;">
-                <!-- Loading spinner for Humidity Chart -->
+            <div class="col-md-4 mb-3">
+              <h6 class="text-center">Humidity Trend (%)</h6>
+              <div class="position-relative chart-container" style="height: 30vh;">
                 <div class="spinner-overlay" id="spinner-hum">
-                  <div class="spinner-border text-primary" role="status">
-                    <span class="sr-only">Loading...</span>
-                  </div>
+                  <div class="spinner-border text-primary" role="status"></div>
                 </div>
                 <canvas id="humidityChart"></canvas>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <h6 class="text-center">CO₂ Levels (ppm)</h6>
+              <div class="position-relative chart-container" style="height: 30vh;">
+                <div class="spinner-overlay" id="spinner-co2">
+                  <div class="spinner-border text-primary" role="status"></div>
+                </div>
+                <canvas id="co2Chart"></canvas>
               </div>
             </div>
           </div>
@@ -80,35 +84,92 @@
       </div>
     </main>
 
-    <!-- Sidebar on Right Column -->
-<aside class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+<!-- Sidebar -->
+<aside class="col-md-3 col-lg-2 d-md-block bg-white sidebar collapse custom-sidebar">
+
   <div class="position-sticky pt-3">
-    <div class="card">
-      <div class="card-header" style="background-image:linear-gradient(45deg, #007bff, #00d4ff); color: white;">
-        <h4>Control Panel</h4>
+    <div class="card shadow-sm">
+      <div class="card-header text-white text-center sidebar-title">
+        <h5 class="mb-0">Control Panel</h5>
       </div>
       <div class="card-body">
+        <!-- Mobile toggle button -->
+        <button class="btn btn-sm btn-outline-primary d-md-none mb-3" data-toggle="collapse" data-target=".custom-sidebar">
+          ☰ Menu
+        </button>
+
         <ul class="nav flex-column nav-pills">
-          <li class="nav-item">
-            <a class="nav-link active" href="/"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+          <li class="nav-item mb-2">
+            <a class="nav-link sidebar-btn {% if request.path == '/' %}active{% endif %}" href="/" data-toggle="tooltip" data-placement="right" title="Go to Dashboard">
+              <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+            </a>
+          </li>
+          <li class="nav-item mb-2">
+            <a class="nav-link sidebar-btn {% if request.path == '/control_relay' %}active{% endif %}" href="/control_relay" data-toggle="tooltip" data-placement="right" title="Relay Switch">
+              <i class="fas fa-toggle-on mr-2"></i> Control Relay
+            </a>
+          </li>
+          <li class="nav-item mb-2">
+            <a class="nav-link sidebar-btn {% if request.path == '/data-table' %}active{% endif %}" href="/data-table" data-toggle="tooltip" data-placement="right" title="Sensor Logs">
+              <i class="fas fa-table mr-2"></i> Data Table
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="/control_relay"><i class="fas fa-toggle-on"></i> Control Relay</a>
+            <a class="nav-link sidebar-btn {% if request.path == '/vocal-commands-interface' %}active{% endif %}" href="/vocal-commands-interface" data-toggle="tooltip" data-placement="right" title="Voice Commands">
+              <i class="fas fa-microphone mr-2"></i> Vocal Commands
+            </a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/data-table"><i class="fas fa-table"></i> Data Table</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/vocal-commands-interface"><i class="fas fa-microphone"></i> Vocal Commands</a>
-          </li>
-          <!-- Additional links can be added here -->
         </ul>
+
+        
       </div>
     </div>
   </div>
 </aside>
-  </div>
-</div>
+
+<!-- Enable tooltips -->
+<script>
+  $(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+  });
+</script>
+
+<style>
+.custom-sidebar {
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+}
+.sidebar-title {
+  background-image: linear-gradient(to right, #007bff, #00c6ff);
+}
+.sidebar-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 12px;
+  font-weight: 500;
+  border-radius: 20px;
+  color: white;
+  background-image: linear-gradient(to right, #007bff, #00c6ff);
+  transition: all 0.3s ease-in-out;
+  margin-bottom: 10px;
+}
+.sidebar-btn:hover {
+  background-image: linear-gradient(to right, #00c6ff, #007bff);
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+  color: white;
+}
+.sidebar-btn.active {
+  background-image: linear-gradient(to right, #0056b3, #007bff);
+  box-shadow: inset 0 0 0 2px white;
+  font-weight: bold;
+}
+</style>
+
+
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -164,26 +225,29 @@ window.showToast = showToast;
       document.querySelector('.main-content').classList.toggle('dark-mode');
       this.innerText = document.body.classList.contains('dark-mode') ? "Light Mode" : "Dark Mode";
   });
+  const socket = io();
 
-  // Socket.IO for real-time sensor updates
-  var socket = io();
-  socket.on('sensor_data', function(data) {
-      document.getElementById('temperature').innerText = data.temperature.toFixed(2) + '°C';
-      document.getElementById('humidity').innerText = data.humidity.toFixed(2) + '%';
-      
-      // Update charts with new data
-      temperatureChart.data.labels.push(new Date().toLocaleTimeString());
-      temperatureChart.data.datasets[0].data.push(data.temperature);
-      humidityChart.data.labels.push(new Date().toLocaleTimeString());
-      humidityChart.data.datasets[0].data.push(data.humidity);
-      temperatureChart.update();
-      humidityChart.update();
+socket.on('sensor_data', function(data) {
+    document.getElementById('temperature').innerText = data.temperature.toFixed(2) + '°C';
+    document.getElementById('humidity').innerText = data.humidity.toFixed(2) + '%';
 
-      // Show toast if sensor data is critical
-      if (data.temperature < 15 || data.temperature > 30 || data.humidity < 30 || data.humidity > 70) {
-          showToast('Critical Sensor Data', `Temperature: ${data.temperature.toFixed(2)}°C, Humidity: ${data.humidity.toFixed(2)}%`);
-      }
-  });
+    // Update charts with new data
+    temperatureChart.data.labels.push(new Date().toLocaleTimeString());
+    temperatureChart.data.datasets[0].data.push(data.temperature);
+    humidityChart.data.labels.push(new Date().toLocaleTimeString());
+    humidityChart.data.datasets[0].data.push(data.humidity);
+    co2Chart.data.labels.push(new Date().toLocaleTimeString());
+    co2Chart.data.datasets[0].data.push(data.co2);
+
+    temperatureChart.update();
+    humidityChart.update();
+    co2Chart.update();
+
+    // Show toast if sensor data is critical
+    if (data.temperature < 15 || data.temperature > 30 || data.humidity < 30 || data.humidity > 70 || data.co2 > 1000) {
+        showToast('Critical Sensor Data', `Temperature: ${data.temperature.toFixed(2)}°C, Humidity: ${data.humidity.toFixed(2)}%, CO2: ${data.co2.toFixed(2)} ppm`);
+    }
+});
 
   // Historical data passed from Flask
 // Historical data passed from Flask
@@ -192,13 +256,15 @@ var temperatureData = historicalData.map(data => data.temperature);
 var humidityData = historicalData.map(data => data.humidity);
 var timestamps = historicalData.map(data => new Date(data.timestamp).toLocaleString());
 var labels = Array.from({length: historicalData.length}, (_, i) => i + 1);
+var co2Data = historicalData.map(data => data.co2);
 
+ 
 // Only keep the last 20 values for visualization
 temperatureData = temperatureData.slice(-20);
 humidityData = humidityData.slice(-20);
 timestamps = timestamps.slice(-20);
 labels = labels.slice(-20);
-
+co2Data = co2Data.slice(-20);
   var criticalTemperatureMin = 15;
   var criticalTemperatureMax = 30;
   var criticalHumidityMin = 30;
@@ -334,7 +400,45 @@ var humidityChart = new Chart(humidityCtx, {
 });
 // Hide humidity chart spinner after chart initialization
 document.getElementById('spinner-hum').classList.add('d-none');
-
+// Initialize CO2 Chart
+var co2Ctx = document.getElementById('co2Chart').getContext('2d');
+var co2Chart = new Chart(co2Ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'CO2 (ppm)',
+            data: co2Data,
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            borderWidth: 1,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: { ticks: { display: false } },
+            y: { beginAtZero: true }
+        },
+        plugins: {
+            legend: { display: true },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': ' + context.raw.toFixed(2) + ' ppm';
+                    },
+                    title: function(context) {
+                        return 'Timestamp: ' + timestamps[context[0].dataIndex];
+                    }
+                }
+            }
+        }
+    }
+});
+// Hide CO2 chart spinner after chart initialization
+document.getElementById('spinner-co2').classList.add('d-none');
 // ...existing code...
 </script>
 {% endblock %}

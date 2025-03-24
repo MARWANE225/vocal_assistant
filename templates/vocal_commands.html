@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <title>Voice Assistant</title>
     <style>
         body {
@@ -77,10 +79,42 @@
             transform: translateX(-50%);
             width: 150px;
         }
+        .back-button {
+            position: fixed;
+            top: 20px; 
+            left: 20px;
+            padding: 8px 16px;
+            font-size: 14px;
+            background: rgba(0, 123, 255, 0.8);
+            color: white;
+            border-radius: 20px;
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+            transition: all 0.3s ease-in-out;
+        }
+        .back-button:hover {
+            background: #00c6ff;
+            transform: scale(1.05);
+            box-shadow: 0 0 12px #00d4ff;
+        }
+        .back-button i {
+            margin-right: 5px;
+        }
+        .listening-animation {
+            animation: pulse 1.5s infinite;
+        }
+        .listening-button {
+            background: #28a745; /* Green color to indicate listening */
+        }
+        .listening-button:hover {
+            background: #218838;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 </head>
 <body>
+    <a href="/" class="back-button"><i class="fas fa-home"></i> Back</a>
     <div id="particles-js"></div>
     <div class="overlay"></div>
     
@@ -184,27 +218,32 @@
             button.addEventListener("click", () => {
                 recognition.start();
                 button.textContent = "Listening...";
+                button.classList.add("listening-button", "listening-animation");
             });
         } else {
             alert("Speech recognition not supported in your browser.");
         }
 
         sendButton.addEventListener("click", () => {
-            const command = output.value;
-            fetch('/process_command', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ command: command })
-            })
-            .then(response => response.json())
-            .then(data => {
-                modelResponse.value = data.response;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                modelResponse.value = "An error occurred.";
-            });
-        });
+    const command = output.value;
+    console.log(`Command sent: ${command}`);
+
+    fetch('/process_command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: command })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Response from server:', data);  // Log the server response
+        modelResponse.value = data.response;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        modelResponse.value = "An error occurred.";
+    });
+});
+
     </script>
 </body>
 </html>

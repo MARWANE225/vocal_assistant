@@ -128,7 +128,7 @@ client.on_message = on_message
 client.connect(MQTT_BROKER, 1883, 60)
 client.subscribe("home/mkr/sensors")  # Écouter le topic MQTT
 client.loop_start()  # Démarrer la boucle MQTT
-
+"""
 # Routes
 @app.route('/')
 def dashboard():
@@ -146,7 +146,46 @@ def dashboard():
         humidity = 0.0
 
     return render_template('dashboard.html', temperature=temperature, humidity=humidity, historical_data=historical_data)
+"""
+"""
+# here i am
+@app.route('/')
+def dashboard():
+    # Fetch historical data from the database
+    historical_data = get_historical_data()
 
+    # Pass the latest data point to the template (if available)
+    latest_data = historical_data[-1] if historical_data else None
+    return render_template('dashboard.html', 
+                           historical_data=historical_data, 
+                           temperature=latest_data['temperature'] if latest_data else None,
+                           humidity=latest_data['humidity'] if latest_data else None,
+                           co2=latest_data['co2'] if latest_data else None)
+"""
+@app.route('/')
+def dashboard():
+    # Fetch historical data from the database
+    historical_data = get_historical_data()
+
+    # If no data is available, use mock data for testing
+    if not historical_data:
+        historical_data = [
+            {"timestamp": "2025-03-22T10:00:00", "temperature": 22.5, "humidity": 45.0, "co2": 400.0},
+            {"timestamp": "2025-03-22T10:05:00", "temperature": 23.0, "humidity": 46.0, "co2": 420.0},
+            {"timestamp": "2025-03-22T10:10:00", "temperature": 24.0, "humidity": 47.0, "co2": 430.0},
+            {"timestamp": "2025-03-22T10:15:00", "temperature": 25.0, "humidity": 48.0, "co2": 440.0},
+            {"timestamp": "2025-03-22T10:20:00", "temperature": 26.0, "humidity": 49.0, "co2": 450.0},
+        ]
+    print("Historical Data:", historical_data)
+    # Pass the latest data point to the template (if available)
+    latest_data = historical_data[-1] if historical_data else None
+    return render_template(
+        'dashboard.html',
+        historical_data=historical_data,
+        temperature=latest_data['temperature'] if latest_data else None,
+        humidity=latest_data['humidity'] if latest_data else None,
+        co2=latest_data['co2'] if latest_data else None
+    )   
 @app.route('/control_relay')
 def control_relay():
     return render_template('test2.html')
@@ -197,7 +236,7 @@ def data_table():
     critical_value = critical_data.temperature if critical_data else float('inf')  # Set a default value if critical_data is None
     print(f"Critical Value: {critical_value}")
     for data in sensor_data:
-        print(f"Timestamp: {data.timestamp}, Temperature: {data.temperature}, Critical: {data.temperature > critical_value}")
+        print(f"Timestamp: {data.timestamp}, Temperature: {data.temperature}°C, Critical: {data.temperature > critical_value}")
     return render_template('data_table.html', sensor_data=sensor_data, critical_value=critical_value)
 
 @app.route('/download-csv')
@@ -243,7 +282,8 @@ import subprocess  # Add this line
 def process_command():
     data = request.get_json()
     command = data.get('command', '')
-
+    print(f"Received command: {command}")  # Add this for debugging
+    
     try:
         result = subprocess.run(
             ['python3', 'commands.py', command],
@@ -251,9 +291,12 @@ def process_command():
             text=True
         )
         response = result.stdout.strip()
-        return jsonify({"response": response})
+        print(f"Command result: {response}")  # Check the response from subprocess
+        return jsonify({"response": response})  # Return the result to the front-end
     except Exception as e:
-        return jsonify({"response": f"Error: {str(e)}"})
+        print(f"Error: {str(e)}")
+        return jsonify({"response": f"Error: {str(e)}"})  # Send error response
+
 if __name__ == '__main__':
     try:
         socketio.run(app, debug=True, use_reloader=False)
