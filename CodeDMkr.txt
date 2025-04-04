@@ -18,13 +18,14 @@ const int LED_PIN = 4;
 const int SERVO_PIN = 9;
 #define DHTPIN 6
 #define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);
+#define CO2_PIN A0
 
+DHT dht(DHTPIN, DHTTYPE);
 Servo servo;
 
 // ⚡ Variables de gestion du temps
-unsigned long lastDHTTime = 0;    // Dernière fois où les données ont été envoyées
-unsigned long interval = 60000;    // Intervalle de 60 secondes pour l'envoi des données
+unsigned long lastSensorTime = 0;
+unsigned long interval = 60000;
 
 void setup() {
     Serial.begin(115200);
@@ -48,7 +49,7 @@ void setup() {
 
     // 🔄 Initialisation du DHT11
     dht.begin();
-    delay(2000);  // Laisser le capteur se stabiliser
+    delay(2000);
 
     // 🔄 Configuration des broches
     pinMode(FAN_PIN, OUTPUT);
@@ -56,7 +57,7 @@ void setup() {
     servo.attach(SERVO_PIN);
 }
 
-// 📌 Callback pour gérer les messages MQTT
+// 📌 Callback MQTT
 void callback(char* topic, byte* payload, unsigned int length) {
     String msg = "";
     for (int i = 0; i < length; i++) {
@@ -68,43 +69,33 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print("] : ");
     Serial.println(msg);
 
-    // Contrôle des périphériques
     if (String(topic) == "fan/control") {
         digitalWrite(FAN_PIN, msg == "ON" ? HIGH : LOW);
-        Serial.println(msg == "ON" ? "🌬️ Ventilateur ALLUMÉ" : "🛑 Ventilateur ÉTEINT");
-    } 
-    else if (String(topic) == "led/control") {
+    } else if (String(topic) == "led/control") {
         digitalWrite(LED_PIN, msg == "ON" ? HIGH : LOW);
-        Serial.println(msg == "ON" ? "💡 LED ALLUMÉE" : "🌑 LED ÉTEINTE");
-    } 
-    else if (String(topic) == "servo/angle") {
-        int angle = msg.toInt();
-        servo.write(angle);
-        Serial.print("🔄 Servo positionné à ");
-        Serial.print(angle);
-        Serial.println("°");
+    } else if (String(topic) == "servo/angle") {
+        servo.write(msg.toInt());
     }
 }
 
-// 📌 Fonction pour envoyer les données du DHT11 via MQTT
+// 📌 Envoi données capteurs
 void sendSensorData() {
     float humidity = dht.readHumidity();
     float temperature = dht.readTemperature();
-  
+    int co2Value = analogRead(CO2_PIN);
+
     if (!isnan(humidity) && !isnan(temperature)) {
         if (client.connected()) {
-            String payload = "{\"temperature\": " + String(temperature) + ", \"humidity\": " + String(humidity) + "}";
+            String payload = "{\"temperature\": " + String(temperature) + ", \"humidity\": " + String(humidity) + ", \"co2\": " + String(co2Value) + "}";
             client.publish(mqtt_topic, payload.c_str());
             Serial.println("📡 Données envoyées : " + payload);
-        } else {
-            Serial.println("⚠️ Impossible d'envoyer les données, MQTT déconnecté !");
         }
     } else {
         Serial.println("❌ Erreur de lecture du DHT11 !");
     }
 }
 
-// 📌 Reconnexion au broker MQTT
+// 📌 Reconnexion MQTT
 void reconnectMQTT() {
     while (!client.connected()) {
         Serial.println("🔄 Connexion au broker MQTT...");
@@ -114,25 +105,19 @@ void reconnectMQTT() {
             client.subscribe("led/control");
             client.subscribe("servo/angle");
         } else {
-            Serial.print("❌ Échec MQTT, erreur: ");
-            Serial.println(client.state());
-            Serial.println("⏳ Nouvelle tentative dans 5s...");
             delay(5000);
         }
     }
 }
 
 void loop() {
-    if (!client.connected()) {
-        reconnectMQTT();
-    }
+    if (!client.connected()) reconnectMQTT();
     client.loop();
 
     unsigned long currentMillis = millis();
-  
-    // Vérifier si 60 secondes sont passées
-    if (currentMillis - lastDHTTime >= interval) {
-        lastDHTTime = currentMillis;  // Sauvegarder le temps actuel
-        sendSensorData();  // Envoyer les données du DHT11
+
+    if (currentMillis - lastSensorTime >= interval) {
+        lastSensorTime = currentMillis;
+        sendSensorData();
     }
 }

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrôle Vocal IoT</title>
+</head>
+<body>
+    <h1>Commandes Vocales IoT</h1>
+    <button onclick="startVoiceCommand()">Démarrer Commande Vocale</button>
+    
+    <script>
+        function startVoiceCommand() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = "fr-FR";
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const command = event.results[0][0].transcript.toLowerCase();
+                console.log("Commande reconnue: " + command);
+
+                fetch("/voice-command", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ command: command })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Réponse du serveur:", data);
+                })
+                .catch(error => {
+                    console.error("Erreur:", error);
+                });
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Erreur lors de la reconnaissance vocale:", event.error);
+            };
+        }
+    </script>
+</body>
+</html>

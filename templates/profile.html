@@ -1,0 +1,250 @@
+{% extends 'layout.html' %}
+{% block content %}
+<style>
+    /* Background Gradient Respecting Your Colors */
+    body {
+        background: linear-gradient(135deg, #f2f9ff, #d2e7ff);  /* Light blue gradient */
+        background-size: 400% 400%;
+        animation: gradient-animation 15s ease infinite;
+        height: 100vh;
+        margin: 0;
+        font-family: 'Arial', sans-serif;
+    }
+
+    /* Animation for Background Gradient */
+    @keyframes gradient-animation {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    /* Profile Card */
+    .profile-container {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        width: 90%;
+        max-width: 700px;
+        margin: 50px auto;
+        text-align: center;
+        color: #333;
+        transition: transform 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .profile-container:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 50px rgba(0, 123, 255, 0.3);
+    }
+
+    /* Profile Picture */
+    .profile-container img {
+        border-radius: 50%;
+        width: 180px;
+        height: 180px;
+        border: 4px solid #ffffff;
+        box-shadow: 0 8px 30px rgba(0, 123, 255, 0.4);
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .profile-container img:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 35px rgba(0, 123, 255, 0.5);
+    }
+
+    /* Username */
+    .profile-container .username {
+        font-size: 2.5rem;
+        font-weight: 600;
+        color: #333;
+        margin-top: 15px;
+    }
+
+    /* Info Text */
+    .profile-container .info-text {
+        font-size: 1.3rem;
+        color: #555;
+        margin-top: 15px;
+        font-weight: 500;
+        line-height: 1.6;
+    }
+
+    /* Contact Info */
+    .profile-container .contact-info {
+        font-size: 1.2rem;
+        color: #555;
+        margin-top: 20px;
+        display: block;
+    }
+
+    .profile-container .contact-info i {
+        color: #007bff;
+        font-size: 1.5rem;
+        margin-right: 10px;
+    }
+
+    /* Upload Button */
+    .upload-btn {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 30px;
+        border-radius: 20px;
+        border: none;
+        cursor: pointer;
+        margin-top: 30px;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    }
+
+    .upload-btn:hover {
+        transform: scale(1.05);
+        background-color: #0056b3;
+        box-shadow: 0 4px 25px rgba(0, 123, 255, 0.3);
+    }
+
+    /* Form Fields */
+    .form-group {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .form-group .form-control {
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        width: 100%;
+        font-size: 1.1rem;
+        margin-top: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .form-group .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+    }
+
+    .form-group .form-control:focus + .form-label {
+        top: -18px;
+        left: 10px;
+        font-size: 0.9rem;
+        color: #007bff;
+    }
+
+    .form-label {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        font-size: 1rem;
+        color: #777;
+        transition: all 0.3s ease;
+    }
+
+    /* Success/Error Message */
+    .alert {
+        margin-top: 20px;
+        padding: 15px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+
+    /* Back Button */
+    .back-button {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        padding: 8px 16px;
+        font-size: 14px;
+        background: rgba(0, 123, 255, 0.8);
+        color: white;
+        border-radius: 20px;
+        text-decoration: none;
+        z-index: 1000;
+        box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+        transition: all 0.3s ease-in-out;
+    }
+
+    .back-button:hover {
+        background: #00c6ff;
+        transform: scale(1.05);
+        box-shadow: 0 0 12px #00d4ff;
+    }
+
+    .back-button i {
+        margin-right: 5px;
+    }
+
+    /* Responsive Styling */
+    @media (max-width: 600px) {
+        .profile-container {
+            width: 90%;
+            padding: 30px;
+        }
+
+        .profile-container img {
+            max-width: 150px;
+            max-height: 150px;
+        }
+    }
+</style>
+
+<!-- Back Button -->
+<a href="/" class="back-button"><i class="fas fa-home"></i> Back</a>
+
+<div class="profile-container">
+    <h2>Profile</h2>
+
+    <!-- Display Profile Picture -->
+    <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="Profile Picture" class="img-fluid">
+
+    <!-- Display Username -->
+    <p class="username">{{ user.username }}</p>
+
+    <!-- Display Email and Phone -->
+    <div class="contact-info">
+        <p class="info-text">
+            <i class="fas fa-envelope"></i> Email: {{ user.email }}
+        </p>
+        <p class="info-text">
+            <i class="fas fa-phone-alt"></i> Phone: {{ user.phone }}
+        </p>
+    </div>
+
+    <!-- Profile Picture Upload Form -->
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.profile_pic(class="form-control") }}
+            <label for="profile_pic" class="form-label">Choose Profile Picture</label>
+        </div>
+        <div class="form-group">
+            {{ form.submit(class="upload-btn") }}
+        </div>
+    </form>
+
+    <!-- Success/Error Message -->
+    {% if success %}
+        <div class="alert alert-success">Profile picture updated successfully!</div>
+    {% elif error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+</div>
+
+{% endblock %}

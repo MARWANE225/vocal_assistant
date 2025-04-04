@@ -15,7 +15,7 @@
   </h1>
   <div class="mt-3">
     <button id="darkModeToggle" class="btn btn-outline-secondary mr-2">Dark Mode</button>
-    <a class="btn btn-outline-primary" href="#"><i class="fas fa-user-circle"></i> Profile</a>
+    <a class="btn btn-outline-primary" href="/profile"><i class="fas fa-user-circle"></i> Profile</a>
   </div>
 </div>
 
@@ -230,6 +230,7 @@ window.showToast = showToast;
 socket.on('sensor_data', function(data) {
     document.getElementById('temperature').innerText = data.temperature.toFixed(2) + '°C';
     document.getElementById('humidity').innerText = data.humidity.toFixed(2) + '%';
+    document.getElementById('co2').innerText = data.co2 ? data.co2.toFixed(2) + ' ppm' : 'N/A';
 
     // Update charts with new data
     temperatureChart.data.labels.push(new Date().toLocaleTimeString());

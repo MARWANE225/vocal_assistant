@@ -49,6 +49,23 @@
 
   <main>
     {% block content %}
+    <!-- Top Navbar -->
+<!-- Top Header Centered -->
+<div class="text-center my-4">
+  <h1 class="display-4 font-weight-bold">
+    <i class="fas fa-microchip text-primary"></i> IoT Dashboard
+  </h1>
+  <div class="mt-3">
+    <button id="darkModeToggle" class="btn btn-outline-secondary mr-2">Dark Mode</button>
+    <!-- Profile link with active state -->
+    <li class="nav-item mb-2">
+      <a class="nav-link sidebar-btn {% if request.path == '/profile' %}active{% endif %}" href="/profile">
+        <i class="fas fa-user-circle mr-2"></i> Profile
+      </a>
+    </li>
+  </div>
+</div>
+
     {% endblock %}
   </main>
 

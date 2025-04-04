@@ -39,3 +39,18 @@ def get_historical_data():
 class CriticalData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     temperature = db.Column(db.Float, nullable=False)
+
+from flask import session  # Assuming you're using session for login
+
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(120), unique=True, nullable=False)
+    profile_pic = db.Column(db.String(120), nullable=True)
+
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+# If necessary, add a function to fetch the user from the database
+def get_user_by_id(user_id):
+    return User.query.get(user_id)

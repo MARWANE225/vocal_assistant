@@ -201,11 +201,7 @@
       </div>
       
     <div class="container">
-      <div class="card">
-        <h2>LED Lightness Control</h2>
-        <input type="range" min="0" max="100" value="50" class="slider" id="ledSlider">
-      </div>
-  
+      
       <div class="card">
         <h2>Fan Control</h2>
         <div class="button-group">
@@ -260,10 +256,6 @@
             flashMessage.style.display = 'block';
             setTimeout(() => { flashMessage.style.display = 'none'; }, 3000);
         }
-
-        document.getElementById('ledSlider').addEventListener('input', function() {
-            sendControlRequest('led_on');
-        });
 
         document.getElementById('fanOnButton').addEventListener('click', function() {
             sendControlRequest('fan_on');
